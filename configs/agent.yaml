@@ -1,0 +1,6 @@
+agent:
+  name: rpa-agent
+  system_prompt: prompts/system.md
+  max_steps: 20
+tools:
+  enabled: [read_file, write_file]
