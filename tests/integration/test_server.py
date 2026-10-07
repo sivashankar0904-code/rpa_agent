@@ -15,6 +15,7 @@ async def test_lists_components(client: Client) -> None:
         "open_application",
         "get_application_status",
         "list_applications",
+        "list_installed_applications",
         "terminate_application",
     }
     assert resources == {"config://server"}
@@ -43,7 +44,7 @@ async def test_sandbox_violation_is_tool_error(client: Client) -> None:
 
 async def test_application_open_status_terminate(client: Client) -> None:
     opened = await client.call_tool(
-        "open_application", {"name": "python", "args": ["-c", "import time; time.sleep(60)"]}
+        "open_application", {"name": "Test Python", "args": ["-c", "import time; time.sleep(60)"]}
     )
     app_id = opened.structured_content["app_id"]  # type: ignore[index]
     assert opened.structured_content["state"] == "running"  # type: ignore[index]
@@ -55,11 +56,21 @@ async def test_application_open_status_terminate(client: Client) -> None:
     assert terminated.structured_content["state"] == "exited"  # type: ignore[index]
 
 
-async def test_unlisted_application_is_tool_error(client: Client) -> None:
-    result = await client.call_tool("open_application", {"name": "cmd"}, raise_on_error=False)
+async def test_list_installed_applications(client: Client) -> None:
+    result = await client.call_tool("list_installed_applications", {"query": "docs"})
+
+    apps = result.structured_content["result"]  # type: ignore[index]
+    assert [a["name"] for a in apps] == ["Docs Only"]
+    assert apps[0]["launchable"] is False
+
+
+async def test_blocked_application_is_tool_error(client: Client) -> None:
+    result = await client.call_tool(
+        "open_application", {"name": "Shell Thing"}, raise_on_error=False
+    )
 
     assert result.is_error
-    assert "not allowed" in result.content[0].text  # type: ignore[union-attr]
+    assert "blocked" in result.content[0].text  # type: ignore[union-attr]
 
 
 async def test_server_config_resource(client: Client) -> None:

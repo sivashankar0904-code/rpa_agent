@@ -17,18 +17,21 @@ from rpa_agent.tools.files import create_files_server
 
 INSTRUCTIONS = """\
 Tools for RPA-style automation. File tools operate inside a sandboxed workspace;
-paths are relative to it. Application tools open, monitor and terminate allowlisted
-applications; use the app_id returned by open_application. Read `config://server`
-for the current configuration.
+paths are relative to it. Application tools list installed applications, then open,
+monitor and terminate them by name; use the app_id returned by open_application.
+Read `config://server` for the current configuration (including blocked apps).
 """
 
 
-def create_server(settings: Settings | None = None) -> FastMCP:
+def create_server(
+    settings: Settings | None = None,
+    application_service: ApplicationService | None = None,
+) -> FastMCP:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
     file_service = FileService(settings.workspace_dir, settings.max_file_bytes)
-    application_service = ApplicationService(settings.allowed_apps)
+    application_service = application_service or ApplicationService(settings.blocked_apps)
 
     # ToolError messages reach the client; other exceptions are masked to avoid leaking internals.
     mcp = FastMCP(
