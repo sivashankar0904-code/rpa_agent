@@ -6,16 +6,17 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-class AppSpec(BaseModel):
-    """How to launch an allowlisted application.
-
-    Some Windows apps (Notepad, Calculator) start through a launcher stub that exits immediately
-    while the real window runs as a separate process. Set `process_name` to the real process's
-    image name (e.g. "Notepad.exe") so it is tracked and terminated instead of the stub.
-    """
-
-    command: str
-    process_name: str | None = None
+class InstalledApp(BaseModel):
+    name: str
+    version: str | None
+    publisher: str | None
+    # "store" and "desktop" come from the Start menu; "registry" apps have no Start entry.
+    source: Literal["store", "desktop", "registry"]
+    # Start-menu AppID (Store: `<Package>_<publisherId>!<App>`, desktop: path or app id).
+    app_id: str | None
+    # True if open_application can launch *and* track it. Other Start entries (browsers that use
+    # an app id, shortcut-based entries, documents) are listed but not launchable.
+    launchable: bool
 
 
 class AppStatus(BaseModel):

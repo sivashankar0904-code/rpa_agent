@@ -2,12 +2,29 @@
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from rpa_agent.schemas.applications import AppSpec
+# Shells, script hosts and system tools that let a client run arbitrary code or change the system.
+DEFAULT_BLOCKED_APPS = [
+    "cmd.exe",
+    "powershell.exe",
+    "powershell_ise.exe",
+    "pwsh.exe",
+    "wt.exe",
+    "windowsterminal.exe",
+    "Microsoft.WindowsTerminal",
+    "wsl.exe",
+    "bash.exe",
+    "wscript.exe",
+    "cscript.exe",
+    "mshta.exe",
+    "rundll32.exe",
+    "regsvr32.exe",
+    "regedit.exe",
+    "msiexec.exe",
+]
 
 
 class Settings(BaseSettings):
@@ -20,19 +37,10 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     workspace_dir: Path = Path("workspace")
     max_file_bytes: int = 1_000_000
-    # Alias -> launch spec. Only these can be launched; set RPA_ALLOWED_APPS as a JSON object whose
-    # values are either a command string or {"command": ..., "process_name": ...}.
-    allowed_apps: dict[str, AppSpec] = {
-        "notepad": AppSpec(command="notepad.exe", process_name="Notepad.exe"),
-        "calc": AppSpec(command="calc.exe", process_name="CalculatorApp.exe"),
-    }
-
-    @field_validator("allowed_apps", mode="before")
-    @classmethod
-    def _bare_commands(cls, value: Any) -> Any:
-        if isinstance(value, dict):
-            return {k: {"command": v} if isinstance(v, str) else v for k, v in value.items()}
-        return value
+    # Applications that open_application refuses to launch. Each entry is matched
+    # case-insensitively against the app's display name, executable name (with or without
+    # ".exe") and, for Store apps, package name. Set RPA_BLOCKED_APPS as a JSON list.
+    blocked_apps: list[str] = DEFAULT_BLOCKED_APPS
 
 
 @lru_cache

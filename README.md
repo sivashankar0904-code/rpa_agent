@@ -61,21 +61,27 @@ docker build -t rpa-agent . && docker run -p 8000:8000 rpa-agent
 | Tool | Purpose |
 | --- | --- |
 | `read_file`, `write_file`, `list_dir` | Sandboxed workspace file access |
-| `open_application(name, args?)` | Launch an allowlisted app; returns an `app_id` |
+| `list_installed_applications(query?)` | Apps installed on this Windows machine, with a `launchable` flag; optional name filter |
+| `open_application(name, args?)` | Launch an installed app by name; returns an `app_id` |
 | `get_application_status(app_id)` | `running` / `exited` with exit code |
 | `list_applications()` | All apps launched by this server |
 | `terminate_application(app_id, timeout_seconds?)` | Graceful terminate, then force-kill after the timeout |
 
-Only aliases in `RPA_ALLOWED_APPS` can be launched, and only apps started by this server can be
-monitored or terminated. The allowlist limits *which* executable runs, not its `args`, so don't
-allowlist interpreters or shells.
+`open_application` accepts any installed app with `launchable: true` except those on the blocklist
+(`RPA_BLOCKED_APPS`; by default shells, script hosts, `regedit`, `msiexec` and terminals). There is
+no allowlist, so a connected client can start anything not blocked, and `args` are passed through
+unchecked. Only run this server for clients you trust.
 
-Terminating stops the app's whole process tree (graceful first, then force-kill), so unsaved
-work in the app is lost. Some Windows apps (Notepad, Calculator) start through a launcher stub
-that exits immediately while the real window runs as another process. For these, set
-`process_name` in the allowlist entry (see `.env.example`) and the real process is tracked
-instead. If the app reuses an already-running instance, no new process appears and
-`open_application` returns an error rather than a handle it couldn't terminate.
+`name` is matched against the installed list: an exact name, otherwise a unique substring.
+
+Launchable apps are Microsoft Store apps and Start-menu apps that point at a real `.exe`. Other
+Start-menu entries (Chrome, Brave, LibreOffice, shortcut-based entries) are listed but not
+launchable, because their process can't be reliably tracked and terminated. Store apps can't take
+`args`. Apps that hand off to another process and exit (some launchers and updaters) show as
+`exited` while the real window stays open.
+
+Only apps started by this server can be monitored or terminated. Terminating stops the app's whole
+process tree (graceful first, then force-kill), so unsaved work is lost.
 
 ## Development
 

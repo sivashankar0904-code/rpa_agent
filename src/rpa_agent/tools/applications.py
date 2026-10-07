@@ -4,7 +4,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 
 from rpa_agent.core.errors import RpaAgentError
-from rpa_agent.schemas.applications import AppStatus
+from rpa_agent.schemas.applications import AppStatus, InstalledApp
 from rpa_agent.services.application_service import ApplicationService
 
 _EXPECTED_ERRORS = (RpaAgentError, OSError)
@@ -15,9 +15,24 @@ def create_applications_server(service: ApplicationService) -> FastMCP:
 
     @server.tool
     def open_application(name: str, args: list[str] | None = None) -> AppStatus:
-        """Launch an allowlisted application by name and return its app_id and status."""
+        """Launch an installed application by name and return its app_id and status.
+
+        `name` is matched against list_installed_applications (exact, else unique substring).
+        Only entries with launchable=true can be opened; blocked apps are refused.
+        """
         try:
             return service.open(name, args)
+        except _EXPECTED_ERRORS as e:
+            raise ToolError(str(e)) from e
+
+    @server.tool(annotations={"readOnlyHint": True})
+    def list_installed_applications(query: str | None = None) -> list[InstalledApp]:
+        """List applications installed on this machine (Windows), optionally filtered by name.
+
+        Each entry says whether open_application can launch it (`launchable`).
+        """
+        try:
+            return service.list_installed(query)
         except _EXPECTED_ERRORS as e:
             raise ToolError(str(e)) from e
 

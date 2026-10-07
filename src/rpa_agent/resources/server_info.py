@@ -21,7 +21,7 @@ def create_server_info_server(settings: Settings) -> FastMCP:
                 "transport": settings.transport,
                 "workspace_dir": str(settings.workspace_dir),
                 "max_file_bytes": settings.max_file_bytes,
-                "allowed_apps": sorted(settings.allowed_apps),
+                "blocked_apps": settings.blocked_apps,
             }
         )
 
