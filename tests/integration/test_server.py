@@ -8,7 +8,15 @@ async def test_lists_components(client: Client) -> None:
     resources = {str(r.uri) for r in await client.list_resources()}
     prompts = {p.name for p in await client.list_prompts()}
 
-    assert tools == {"read_file", "write_file", "list_dir"}
+    assert tools == {
+        "read_file",
+        "write_file",
+        "list_dir",
+        "open_application",
+        "get_application_status",
+        "list_applications",
+        "terminate_application",
+    }
     assert resources == {"config://server"}
     assert prompts == {"summarize_file"}
 
@@ -31,6 +39,27 @@ async def test_sandbox_violation_is_tool_error(client: Client) -> None:
 
     assert result.is_error
     assert "outside the workspace" in result.content[0].text  # type: ignore[union-attr]
+
+
+async def test_application_open_status_terminate(client: Client) -> None:
+    opened = await client.call_tool(
+        "open_application", {"name": "python", "args": ["-c", "import time; time.sleep(60)"]}
+    )
+    app_id = opened.structured_content["app_id"]  # type: ignore[index]
+    assert opened.structured_content["state"] == "running"  # type: ignore[index]
+
+    status = await client.call_tool("get_application_status", {"app_id": app_id})
+    assert status.structured_content["state"] == "running"  # type: ignore[index]
+
+    terminated = await client.call_tool("terminate_application", {"app_id": app_id})
+    assert terminated.structured_content["state"] == "exited"  # type: ignore[index]
+
+
+async def test_unlisted_application_is_tool_error(client: Client) -> None:
+    result = await client.call_tool("open_application", {"name": "cmd"}, raise_on_error=False)
+
+    assert result.is_error
+    assert "not allowed" in result.content[0].text  # type: ignore[union-attr]
 
 
 async def test_server_config_resource(client: Client) -> None:

@@ -10,12 +10,16 @@ from rpa_agent.core.logging import configure_logging
 from rpa_agent.middleware.timing import ToolTimingMiddleware
 from rpa_agent.prompts.templates import create_prompts_server
 from rpa_agent.resources.server_info import create_server_info_server
+from rpa_agent.services.application_service import ApplicationService
 from rpa_agent.services.file_service import FileService
+from rpa_agent.tools.applications import create_applications_server
 from rpa_agent.tools.files import create_files_server
 
 INSTRUCTIONS = """\
 Tools for RPA-style automation. File tools operate inside a sandboxed workspace;
-paths are relative to it. Read `config://server` for the current configuration.
+paths are relative to it. Application tools open, monitor and terminate allowlisted
+applications; use the app_id returned by open_application. Read `config://server`
+for the current configuration.
 """
 
 
@@ -24,6 +28,7 @@ def create_server(settings: Settings | None = None) -> FastMCP:
     configure_logging(settings.log_level)
 
     file_service = FileService(settings.workspace_dir, settings.max_file_bytes)
+    application_service = ApplicationService(settings.allowed_apps)
 
     # ToolError messages reach the client; other exceptions are masked to avoid leaking internals.
     mcp = FastMCP(
@@ -34,6 +39,7 @@ def create_server(settings: Settings | None = None) -> FastMCP:
         mask_error_details=True,
     )
     mcp.mount(create_files_server(file_service))
+    mcp.mount(create_applications_server(application_service))
     mcp.mount(create_server_info_server(settings))
     mcp.mount(create_prompts_server())
 

@@ -11,3 +11,15 @@ class WorkspaceAccessError(RpaAgentError):
 
 class FileTooLargeError(RpaAgentError):
     """A file exceeds the configured size limit."""
+
+
+class ApplicationNotAllowedError(RpaAgentError):
+    """The requested application name is not in the configured allowlist."""
+
+
+class ApplicationLaunchError(RpaAgentError):
+    """The application started but its process could not be identified for tracking."""
+
+
+class ApplicationNotFoundError(RpaAgentError):
+    """No application with the given id was launched by this server."""
