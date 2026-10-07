@@ -1,21 +1,16 @@
 [project]
 name = "rpa-agent"
 version = "0.1.0"
-description = "Agentic AI project for RPA-style task automation"
-requires-python = ">=3.11"
+description = "FastMCP server exposing RPA-style automation tools"
+readme = "README.md"
+requires-python = ">=3.12"
 dependencies = [
-    "anthropic>=0.40",
-    "pydantic>=2.7",
-    "pydantic-settings>=2.3",
-    "pyyaml>=6.0",
-    "python-dotenv>=1.0",
+    "fastmcp>=4.0.11",
+    "pydantic-settings>=2.15.0",
 ]
 
-[project.optional-dependencies]
-dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5", "mypy>=1.10"]
-
 [project.scripts]
-rpa-agent = "rpa_agent.main:main"
+rpa-agent = "rpa_agent.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -28,6 +23,24 @@ packages = ["src/rpa_agent"]
 line-length = 100
 src = ["src", "tests"]
 
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.0",
+    "pre-commit>=4.6.2",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.10",
+]
